@@ -28,6 +28,7 @@ class VarnishPurge {
 			add_action( 'admin_init', array( $this, 'register_varnish_settings' ) );
 		}
 		
+
 /*
 		add_action( 'wp_ajax_nopriv_purge_all', array( $this, 'purge_all' ) );
 		add_action( 'wp_ajax_purge_all', array( $this, 'purge_all' ) );
@@ -85,23 +86,23 @@ class VarnishPurge {
 	}
 	
 
-	public function purge_all( $purge_url = '' ) {
+	public function purge_all( ) {
 		
+		$purge_url = '';
 		if( $purge_url == '' ) {
 			$varnishurl = get_site_url();	
 		} else {
 			$varnishurl = $purge_url;
 		}
 		
-	    $varnishhost = 'Host: ' . $this->varnish_ip;
+	    $varnishhost = 'Host: ' . $varnishurl;
 	    $varnishcommand = "PURGE";
 	    $curl = curl_init($varnishurl);
 	    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $varnishcommand);
-	    curl_setopt($curl, CURLOPT_ENCODING, $varnishhost);
+	    curl_setopt($curl, CURLOPT_ENCODING, $varnishurl);
 	    curl_setopt($curl, CURLOPT_RETURNTRANSFER, false);
 	    $result = curl_exec($curl);
 	    curl_close($curl);
-		
 	}
 	
 }
