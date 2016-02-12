@@ -13,96 +13,152 @@ Author URI:
 * VarnishPurge
 */
 class VarnishPurge {
-
-	private $options_name = 'Varnish Purge Einstellungen';	
-	private $options_group = 'varnish-options-group';
-	private $options_slug = 'varnish-options';
-	private $options_prefix = 'varnish_options_';
-	private $varnish_ip = '';
-	private $varnish_secret = '';
 	
+	/**
+    * Construct for hooks
+    */
 	public function __construct() {
-		
-		if ( is_admin() ){ // admin actions
-			add_action( 'admin_menu', array( $this, 'add_varnish_settings_menu' ) );			
-			add_action( 'admin_init', array( $this, 'register_varnish_settings' ) );
-		}
-		
+				
+		// initialize javascript
+		add_action( 'admin_enqueue_scripts', array( $this, 'varnish_script_enqueue' ) );
 
-/*
+		// initialize dashboard widget
+		add_action( 'wp_dashboard_setup', array( $this, 'varnish_dashboard_widget' ) );
+		
+		// initialize ajax calls
 		add_action( 'wp_ajax_nopriv_purge_all', array( $this, 'purge_all' ) );
-		add_action( 'wp_ajax_purge_all', array( $this, 'purge_all' ) );
-*/
+		add_action( 'wp_ajax_purge_all', array( $this, 'purge_all' ) );		
+		
+		// hook on save post
+		add_action( 'save_post', array( $this, 'purge_selective' ), 10, 3 );
+		
+	}
+	
+	/**
+    * Enqueue needed scripts for this plugin
+    */
+	public function varnish_script_enqueue() {
+	    wp_enqueue_script( 'varnish_ajax', plugin_dir_url( __FILE__ ) . '/assets/js/varnish.js' );
+	}
+	
+	/**
+    * This method registers the dashboard widget
+    */
+	public function varnish_dashboard_widget() {
+		wp_add_dashboard_widget( 'varnish-purge', __('Cache zurücksetzen', 'varnish-purge'), array( $this, 'varnish_render_widget' ), $control_callback = null );
+	}
 
-		add_action( 'save_post', array( $this, 'purge_all' ), 10, 3 );
-		
-		// set variables
-		$this->varnish_ip = get_option( $this->options_prefix . 'ip' );
-		$this->varnish_secret = get_option( $this->options_prefix . 'secret' );
-		
-	}
-	
-	public function register_varnish_settings() { 
-		
-		add_settings_section( $this->options_group, 'Server Einstellungen', null, $this->options_slug);
-		
-		add_settings_field( $this->options_prefix . 'ip', 'Varnish IP', array( $this, 'render_varnish_ip_field' ), $this->options_slug, $this->options_group );
-		add_settings_field( $this->options_prefix . 'secret', 'Varnish Secret', array( $this, 'render_varnish_secret_field' ), $this->options_slug, $this->options_group );
-		
-		register_setting( $this->options_group, $this->options_prefix . 'ip' );
-		register_setting( $this->options_group, $this->options_prefix . 'secret' );
-		
-	}
-	
-	public function render_varnish_ip_field( ) {
-			
-		echo '<input type="text" name="' . $this->options_prefix . 'ip' . '" id="' . $this->options_prefix . 'ip' . '" value="' . get_option( $this->options_prefix . 'ip' ) . '" />';
-		
-	}
-	
-	public function render_varnish_secret_field( ) {
-			
-		echo '<input type="text" name="' . $this->options_prefix . 'secret' . '" id="' . $this->options_prefix . 'secret' . '" value="' . get_option( $this->options_prefix . 'secret' ) . '" />';
-		
+	/**
+    * This method renders the dashboard widget
+    * @callback from wp_add_dashboard_widget
+    */	
+	public function varnish_render_widget() {
+		echo '<p>'.__('Wenn Sie auf "Cache zurücksetzen" klicken, wird der gesamte Cache der Webseite zurückgesetzt.', 'varnish-purge').'</p>';
+		echo '<a href="#" class="button" id="purge-varnish">'.__('Cache zurücksetzen', 'varnish-purge').'</a>';	
 	}	
-	
-	public function render_varnish_settings() {
-	    ?>
-		    <div class="wrap">
-			    <h1><?php echo $this->options_name; ?></h1>
-			    <form method="post" action="options.php">
-			        <?php
-			            settings_fields( $this->options_group );
-			            do_settings_sections( $this->options_slug );      
-			            submit_button(); 
-			        ?>          
-			    </form>
-			</div>
-		<?php
-	}
-	
-	public function add_varnish_settings_menu() {
-		add_options_page( $this->options_name, $this->options_name, "manage_options", $this->options_slug, array( $this, 'render_varnish_settings' ), null, 99 );
-	}
-	
 
-	public function purge_all( ) {
+	/**
+    * This method purges cache completely via cURL
+    */
+	public function purge_all() {
 		
-		$purge_url = '';
-		if( $purge_url == '' ) {
-			$varnishurl = get_site_url();	
-		} else {
-			$varnishurl = $purge_url;
-		}
+		// get site url		
+		$varnishurl = get_site_url();	
 		
+		// set host for request
 	    $varnishhost = 'Host: ' . $varnishurl;
+	    
+	    // set command BAN for regex
 	    $varnishcommand = "PURGE";
+	    
+	    ob_start();
+	    
+	    // initialize cURL
 	    $curl = curl_init($varnishurl);
+	    
+	    // set cURL options
 	    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $varnishcommand);
 	    curl_setopt($curl, CURLOPT_ENCODING, $varnishurl);
 	    curl_setopt($curl, CURLOPT_RETURNTRANSFER, false);
+	    
+	    // execute cURL
 	    $result = curl_exec($curl);
+	    
+	    // close cURL
 	    curl_close($curl);
+	    
+	    ob_end_clean();
+	    
+	    if( $result == false ) {
+		    echo json_encode( array( 'msg' => __('Zurücksetzen des Caches fehlgeschlagen!', 'varnish-purge' ) ) );
+	    } else {
+   		    echo json_encode( array( 'msg' => __('Zurücksetzen des Caches erfolgreich!', 'varnish-purge' ) ) );
+	    }
+	    
+	    exit;
+	    
+	}
+	
+	/**
+    * This method purges cache on post save
+    */
+	public function purge_selective() {
+		
+		global $wpdb;
+				
+		if( !empty( $_POST ) ) {
+			
+			$post_type = $_POST['post_type'];
+			$post_id = $_POST['post_ID'];
+			
+			$urls_to_purge = array();
+			
+			if( $post_type == 'page' ) {
+				$urls_to_purge[] = get_permalink( $post_id );
+			} else {
+				$urls_to_purge[] = get_permalink( $post_id );
+	
+				$sql = "SELECT * FROM wp_posts WHERE post_content LIKE '%[%]%' AND post_type != 'revision';";	
+				
+			    $shortcode_posts = $wpdb->get_results($sql);
+			    
+			    foreach( $shortcode_posts as $shortcode_post ) {
+				    $urls_to_purge[$shortcode_post->ID] = get_permalink( $shortcode_post->ID );
+			    }
+			    
+			}
+			
+			foreach( $urls_to_purge as $url ) {
+				// get site url		
+				$varnishurl = $url;
+				
+				// set host for request
+			    $varnishhost = 'Host: ' . $url;
+			    
+			    // set command BAN for regex
+			    $varnishcommand = "PURGE";
+			    
+			    ob_start();
+			    
+			    // initialize cURL
+			    $curl = curl_init($varnishurl);
+			    
+			    // set cURL options
+			    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $varnishcommand);
+			    curl_setopt($curl, CURLOPT_ENCODING, $varnishurl);
+			    curl_setopt($curl, CURLOPT_RETURNTRANSFER, false);
+			    
+			    // execute cURL
+			    $result = curl_exec($curl);
+			    
+			    // close cURL
+			    curl_close($curl);
+			    
+			    ob_end_clean();
+			}
+
+		}
+	    
 	}
 	
 }
