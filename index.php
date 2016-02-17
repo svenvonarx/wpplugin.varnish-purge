@@ -69,7 +69,7 @@ class VarnishPurge {
 	    $varnishhost = 'Host: ' . $varnishurl;
 	    
 	    // set command BAN for regex
-	    $varnishcommand = "PURGE";
+	    $varnishcommand = "BAN";
 	    
 	    ob_start();
 	    
@@ -105,8 +105,8 @@ class VarnishPurge {
 	public function purge_selective() {
 		
 		global $wpdb;
-				
-		if( !empty( $_POST ) ) {
+		
+		if( !empty( $_POST ) && $_POST['_wp_http_referer'] !== '/wp-admin/nav-menus.php' ) {
 			
 			$post_type = $_POST['post_type'];
 			$post_id = $_POST['post_ID'];
@@ -118,25 +118,26 @@ class VarnishPurge {
 			} else {
 				$urls_to_purge[] = get_permalink( $post_id );
 	
-				$sql = "SELECT * FROM wp_posts WHERE post_content LIKE '%[%]%' AND post_type != 'revision';";	
+				$sql = "SELECT * FROM wp_posts as post LEFT JOIN wp_postmeta as meta ON (post.ID = meta.post_id) WHERE (post.post_content LIKE '%[%]%' AND post.post_type != 'revision' AND post.post_type != 'pushs_vorlagen') OR (meta.meta_key = '_wp_page_template' AND meta.meta_value != 'default');";	
 				
 			    $shortcode_posts = $wpdb->get_results($sql);
 			    
 			    foreach( $shortcode_posts as $shortcode_post ) {
 				    $urls_to_purge[$shortcode_post->ID] = get_permalink( $shortcode_post->ID );
 			    }
-			    
 			}
-			
+
 			foreach( $urls_to_purge as $url ) {
 				// get site url		
 				$varnishurl = $url;
 				
+				$varnishurl = str_replace( 'http:', 'https:', $varnishurl );
+				
 				// set host for request
-			    $varnishhost = 'Host: ' . $url;
+			    $varnishhost = 'Host: ' . $varnishurl;
 			    
 			    // set command BAN for regex
-			    $varnishcommand = "PURGE";
+			    $varnishcommand = "BAN";
 			    
 			    ob_start();
 			    
