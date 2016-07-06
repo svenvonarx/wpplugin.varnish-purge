@@ -106,23 +106,29 @@ class VarnishPurge {
 		
 		global $wpdb;
 		
+		if( $_POST['post_type'] == 'pushs_vorlagen' || $_POST['post_type'] == 'pushs' || $_POST['post_type'] == 'acf-field-group' ) {
+			return;
+		}
+		
 		if( !empty( $_POST ) && $_POST['_wp_http_referer'] !== '/wp-admin/nav-menus.php' ) {
 			
 			$post_type = $_POST['post_type'];
 			$post_id = $_POST['post_ID'];
 			
+			$reset_cache = get_field_object( 'reset_cache', $post_id );
+			$reset_cache = $reset_cache['key'];
+			$reset_cache = $_POST['acf'][$reset_cache];
+			
 			$urls_to_purge = array();
 			
-			if( $post_type == 'page' ) {
-				$urls_to_purge[] = get_permalink( $post_id );
-			} else {
-				$urls_to_purge[] = get_permalink( $post_id );
-	
-				$sql = "SELECT * FROM wp_posts as post LEFT JOIN wp_postmeta as meta ON (post.ID = meta.post_id) WHERE (post.post_content LIKE '%[%]%' AND post.post_type != 'revision' AND post.post_type != 'pushs_vorlagen') OR (meta.meta_key = '_wp_page_template' AND meta.meta_value != 'default');";	
-				
-			    $shortcode_posts = $wpdb->get_results($sql);
+			$urls_to_purge[] = get_permalink( $post_id );
+			
+			if( $reset_cache == '1' ) {
+				$_POST['acf'][$reset_cache] = '0';
+				update_field('reset_cache', '0', $post_id);
+				$sql = get_posts( array( 'post_type' => 'page', 'posts_per_page' => -1 ) );
 			    
-			    foreach( $shortcode_posts as $shortcode_post ) {
+			    foreach( $sql as $shortcode_post ) {
 				    $urls_to_purge[$shortcode_post->ID] = get_permalink( $shortcode_post->ID );
 			    }
 			}
