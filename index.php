@@ -109,8 +109,12 @@ class VarnishPurge {
 			$reset_cache_date = get_post_meta($post->ID, 'last_reset_cache', true);
 
 			if( $reset_cache_date !== '' ) {
-				echo '<style> .acf-field-577d7ec8d0b41 .acf-checkbox-list { top: -52px; } </style>';
-				echo '<p style="font-style: italic; position: relative; top: 40px;">Die verknüpften Seiten wurden zuletzt am ' . $reset_cache_date . ' zurückgesetzt.</p>';	
+				echo '<style> 
+					.acf-field-577d7ec8d0b41 { padding-top: 70px !important; }
+					.acf-field-577d7ec8d0b41 .acf-checkbox-list { top: -48px; } 
+				</style>';
+				echo '<p style="position: absolute; top: 8px; line-height: 1.3;">Der Cache für diesen Inhalt wird beim Aktualisieren automatisch zurückgesetzt.</p>';
+				echo '<p style="font-style: italic; position: relative; top: 38px; line-height: 1.3;">Die verknüpften Seiten wurden zuletzt am<br>' . $reset_cache_date . ' zurückgesetzt.</p>';	
 			}
 		}
 		
@@ -208,7 +212,7 @@ acf_add_local_field_group(array (
 			'label' => 'Verknüpfte Seiten zurücksetzen',
 			'name' => 'reset_cache',
 			'type' => 'checkbox',
-			'instructions' => 'Falls sichergestellt werden möchte, dass Seiten, welche mit diesem Inhalt verknüpft sind, zurückgesetzt werden, kann diese Option anwählen. (Der Speicherprozess benötigt etwas mehr Zeit.)',
+			'instructions' => 'Falls Sie sicherstellen möchten, dass Seiten, welche mit diesem Inhalt verknüpft sind, zurückgesetzt werden, kann diese Option angewählt werden. (Der Speicherprozess benötigt etwas mehr Zeit.)',
 			'required' => 0,
 			'conditional_logic' => 0,
 			'wrapper' => array (
