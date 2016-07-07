@@ -32,6 +32,8 @@ class VarnishPurge {
 		// hook on save post
 		add_action( 'save_post', array( $this, 'purge_selective' ), 10, 3 );
 		
+// 		add_action( 'acf/render_field', array($this, 'last_reset_field'), 10, 1 );
+		
 	}
 	
 	/**
@@ -99,12 +101,20 @@ class VarnishPurge {
 	    
 	}
 	
+	public function last_reset_field( $field ) {
+
+		echo '<p>Some extra HTML</p>';
+	
+	}
+	
 	/**
     * This method purges cache on post save
     */
 	public function purge_selective() {
 		
 		global $wpdb;
+		
+		setlocale(LC_ALL, "de_DE.UTF-8");
 		
 		if( $_POST['post_type'] == 'pushs_vorlagen' || $_POST['post_type'] == 'pushs' || $_POST['post_type'] == 'acf-field-group' ) {
 			return;
@@ -126,6 +136,8 @@ class VarnishPurge {
 			if( $reset_cache == '1' ) {
 				$_POST['acf'][$reset_cache] = '0';
 				update_field('reset_cache', '0', $post_id);
+				$date = current_time('timestamp');
+				update_field('last_reset_cache', strftime('%A, der %d. %B %Y um ', $date ), $post_id);
 				$sql = get_posts( array( 'post_type' => 'page', 'posts_per_page' => -1 ) );
 			    
 			    foreach( $sql as $shortcode_post ) {
@@ -171,3 +183,110 @@ class VarnishPurge {
 }
 
 new VarnishPurge();
+
+
+//acf fields
+if( function_exists('acf_add_local_field_group') ):
+
+acf_add_local_field_group(array (
+	'key' => 'group_577d7e6ba9988',
+	'title' => 'Cache zurücksetzen',
+	'fields' => array (
+		array (
+			'key' => 'field_577d7ec8d0b41',
+			'label' => 'Verknüpfte Seiten zurücksetzen',
+			'name' => 'reset_cache',
+			'type' => 'checkbox',
+			'instructions' => 'Falls sichergestellt werden möchte, dass Seiten, welche mit diesem Inhalt verknüpft sind, zurückgesetzt werden, kann diese Option anwählen. (Der Speicherprozess benötigt etwas mehr Zeit.)',
+			'required' => 0,
+			'conditional_logic' => 0,
+			'wrapper' => array (
+				'width' => '',
+				'class' => '',
+				'id' => '',
+			),
+			'choices' => array (
+				1 => 'Cache zurücksetzen',
+			),
+			'default_value' => array (
+			),
+			'layout' => 'vertical',
+			'toggle' => 0,
+		),
+	),
+	'location' => array (
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'post',
+			),
+		),
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'specialopeningtimes',
+			),
+		),
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'sportler',
+			),
+		),
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'sportlerteam',
+			),
+		),
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'sportfunktionaer',
+			),
+		),
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'cubetech_clubs',
+			),
+		),
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'event',
+			),
+		),
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'video',
+			),
+		),
+		array (
+			array (
+				'param' => 'post_type',
+				'operator' => '==',
+				'value' => 'facilities',
+			),
+		),
+	),
+	'menu_order' => -100,
+	'position' => 'side',
+	'style' => 'default',
+	'label_placement' => 'top',
+	'instruction_placement' => 'label',
+	'hide_on_screen' => '',
+	'active' => 1,
+	'description' => '',
+));
+
+endif;
