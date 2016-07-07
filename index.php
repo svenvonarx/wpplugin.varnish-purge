@@ -108,12 +108,14 @@ class VarnishPurge {
 			
 			$reset_cache_date = get_post_meta($post->ID, 'last_reset_cache', true);
 
-			if( $reset_cache_date !== '' ) {
 				echo '<style> 
 					.acf-field-577d7ec8d0b41 { padding-top: 70px !important; }
-					.acf-field-577d7ec8d0b41 .acf-checkbox-list { top: -48px; } 
 				</style>';
 				echo '<p style="position: absolute; top: 8px; line-height: 1.3;">Der Cache für diesen Inhalt wird beim Aktualisieren automatisch zurückgesetzt.</p>';
+			if( $reset_cache_date !== '' ) {
+				echo '<style> 
+					.acf-field-577d7ec8d0b41 .acf-checkbox-list { top: -48px; } 
+				</style>';
 				echo '<p style="font-style: italic; position: relative; top: 38px; line-height: 1.3;">Die verknüpften Seiten wurden zuletzt am<br>' . $reset_cache_date . ' zurückgesetzt.</p>';	
 			}
 		}
