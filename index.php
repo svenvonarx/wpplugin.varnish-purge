@@ -32,7 +32,7 @@ class VarnishPurge {
 		// hook on save post
 		add_action( 'save_post', array( $this, 'purge_selective' ), 10, 3 );
 		
-// 		add_action( 'acf/render_field', array($this, 'last_reset_field'), 10, 1 );
+		add_action( 'acf/render_field', array($this, 'last_reset_field'), 10, 1 );
 		
 	}
 	
@@ -102,8 +102,18 @@ class VarnishPurge {
 	}
 	
 	public function last_reset_field( $field ) {
+		//field_577d7ec8d0b41
+		if( $field['key'] == 'field_577d7ec8d0b41' ) {
+			global $post;
+			
+			$reset_cache_date = get_post_meta($post->ID, 'last_reset_cache', true);
 
-		echo '<p>Some extra HTML</p>';
+			if( $reset_cache_date !== '' ) {
+				echo '<style> .acf-field-577d7ec8d0b41 .acf-checkbox-list { top: -52px; } </style>';
+				echo '<p style="font-style: italic; position: relative; top: 40px;">Die verknüpften Seiten wurden zuletzt am ' . $reset_cache_date . ' zurückgesetzt.</p>';	
+			}
+		}
+		
 	
 	}
 	
@@ -127,17 +137,18 @@ class VarnishPurge {
 			
 			$reset_cache = get_field_object( 'reset_cache', $post_id );
 			$reset_cache = $reset_cache['key'];
-			$reset_cache = $_POST['acf'][$reset_cache];
+			$reset_cache = reset( $_POST['acf'][$reset_cache] );
 			
 			$urls_to_purge = array();
 			
 			$urls_to_purge[] = get_permalink( $post_id );
-			
+
 			if( $reset_cache == '1' ) {
-				$_POST['acf'][$reset_cache] = '0';
-				update_field('reset_cache', '0', $post_id);
+				$_POST['acf'][$reset_cache] = '';
+				update_field('reset_cache', '', $post_id);
 				$date = current_time('timestamp');
-				update_field('last_reset_cache', strftime('%A, der %d. %B %Y um ', $date ), $post_id);
+				var_dump(strftime('%e. %B %Y um %T', $date ));
+				update_post_meta( $post_id, 'last_reset_cache', strftime('%e. %B %Y um %T', $date ) );
 				$sql = get_posts( array( 'post_type' => 'page', 'posts_per_page' => -1 ) );
 			    
 			    foreach( $sql as $shortcode_post ) {
